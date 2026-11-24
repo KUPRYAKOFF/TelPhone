@@ -2,14 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Width="370" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Background="#F4F8F7"
-        FontFamily="Segoe UI" FontSize="14" Foreground="{StaticResource Ink}" Language="ru-RU">
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Canvas}"
+        FontFamily="Segoe UI" FontSize="14" Foreground="{DynamicResource Ink}" Language="ru-RU">
     <StackPanel Margin="20" FocusManager.FocusedElement="{Binding ElementName=GroupName}">
         <Label Content="Группа" Target="{Binding ElementName=GroupName}" Padding="0,0,0,6"/>
         <ComboBox x:Name="GroupName" IsEditable="True" IsTextSearchEnabled="False"
                   MinHeight="34" VerticalContentAlignment="Center"/>
         <TextBlock Text="Выберите существующую группу, введите новую или оставьте поле пустым."
-                   TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,6,0,12"/>
+                   TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,6,0,12"/>
         <CheckBox x:Name="UpdateExisting" IsChecked="True" Margin="0,0,0,12">
             <CheckBox.Style>
                 <Style TargetType="CheckBox">

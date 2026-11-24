@@ -1,124 +1,174 @@
 <Window x:Class="TelPhone.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TelPhone" Width="490" Height="685" MinWidth="410" MinHeight="585"
-        WindowStartupLocation="CenterScreen" Background="#F4F8F7"
-        FontFamily="Segoe UI" FontSize="14" Foreground="{StaticResource Ink}" Language="ru-RU"
+        xmlns:core="clr-namespace:TelPhone.Core;assembly=TelPhone.Core"
+        Title="TelPhone" Icon="/Assets/TelPhone.ico" Width="470" Height="690" MinWidth="390" MinHeight="505"
+        Topmost="{Binding IsTopmost}" WindowStartupLocation="CenterScreen" Background="{DynamicResource Canvas}"
+        FontFamily="Segoe UI" FontSize="14" Foreground="{DynamicResource Ink}" Language="ru-RU"
         Loaded="OnLoaded">
-    <Grid Margin="22">
+    <Grid x:Name="Frame" Margin="16,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <StackPanel Margin="0,0,0,15">
-            <TextBlock Text="TelPhone" FontSize="27" FontWeight="SemiBold"/>
-            <TextBlock Text="{Binding Connection}" Margin="0,5,0,7"
-                       TextWrapping="Wrap" Foreground="{StaticResource Muted}"
-                       AutomationProperties.LiveSetting="Polite"/>
+        <StackPanel Margin="0,0,0,8">
             <DockPanel LastChildFill="True">
-                <Button DockPanel.Dock="Right" Content="Выбрать ADB" Margin="8,0,0,0" Command="{Binding ChooseAdb}"/>
+                <ToggleButton x:Name="CompactToggle" DockPanel.Dock="Right" Content="Мини" Margin="6,0,0,0"
+                              IsChecked="{Binding IsCompact, Mode=TwoWay}" Padding="9,4" VerticalAlignment="Center"
+                              ToolTip="Переключить размер окна" AutomationProperties.Name="Миниатюрный режим"/>
+                <ToggleButton DockPanel.Dock="Right" Content="Поверх окон" Margin="6,0,0,0"
+                              IsChecked="{Binding IsTopmost, Mode=TwoWay}" Padding="9,4" VerticalAlignment="Center"
+                              ToolTip="Закрепить окно поверх остальных" AutomationProperties.Name="Поверх окон"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="/Assets/TelPhone.png" Height="31" Width="31" Margin="0,0,7,0"/>
+                    <TextBlock Text="TelPhone" FontSize="21" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+            <TextBlock Text="{Binding Connection}" Margin="1,5,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
+            <DockPanel x:Name="Setup" Margin="0,7,0,0" LastChildFill="True">
+                <ComboBox DockPanel.Dock="Right" Margin="6,0,0,0" SelectedValuePath="Tag" MinWidth="95"
+                          SelectedValue="{Binding Theme, Mode=TwoWay}" AutomationProperties.Name="Тема оформления">
+                    <ComboBoxItem Content="Светлая" Tag="{x:Static core:WindowTheme.Light}"/>
+                    <ComboBoxItem Content="Тёмная" Tag="{x:Static core:WindowTheme.Dark}"/>
+                    <ComboBoxItem Content="Ауспекс" Tag="{x:Static core:WindowTheme.Auspex}"/>
+                </ComboBox>
+                <Button DockPanel.Dock="Right" Content="Выбрать ADB" Margin="6,0,0,0" Command="{Binding ChooseAdb}"/>
                 <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
-                          DisplayMemberPath="Label" VerticalContentAlignment="Center"
+                          DisplayMemberPath="Label" VerticalContentAlignment="Center" IsTextSearchEnabled="False"
                           AutomationProperties.Name="Подключённый телефон"/>
             </DockPanel>
         </StackPanel>
 
-        <TabControl x:Name="Tabs" Grid.Row="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}">
-            <TabItem x:Name="PhoneTab" Header="Телефон">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="15">
-                        <TextBlock Text="Номер телефона" Margin="0,0,0,5" Foreground="{StaticResource Muted}"/>
-                        <TextBox x:Name="NumberInput" Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"
-                                 AutomationProperties.Name="Номер телефона" MaxLength="80" FontSize="27"
-                                 Padding="8,4" VerticalContentAlignment="Center" MinHeight="49">
-                            <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding Call}"/>
-                                <KeyBinding Key="Escape" Command="{Binding Clear}"/>
-                            </TextBox.InputBindings>
-                        </TextBox>
-                        <UniformGrid Columns="3" Margin="-3,10,-3,3">
-                            <Button Content="1" Command="{Binding Append}" CommandParameter="1" Style="{StaticResource Keypad}"/>
-                            <Button Content="2" Command="{Binding Append}" CommandParameter="2" Style="{StaticResource Keypad}"/>
-                            <Button Content="3" Command="{Binding Append}" CommandParameter="3" Style="{StaticResource Keypad}"/>
-                            <Button Content="4" Command="{Binding Append}" CommandParameter="4" Style="{StaticResource Keypad}"/>
-                            <Button Content="5" Command="{Binding Append}" CommandParameter="5" Style="{StaticResource Keypad}"/>
-                            <Button Content="6" Command="{Binding Append}" CommandParameter="6" Style="{StaticResource Keypad}"/>
-                            <Button Content="7" Command="{Binding Append}" CommandParameter="7" Style="{StaticResource Keypad}"/>
-                            <Button Content="8" Command="{Binding Append}" CommandParameter="8" Style="{StaticResource Keypad}"/>
-                            <Button Content="9" Command="{Binding Append}" CommandParameter="9" Style="{StaticResource Keypad}"/>
-                            <Button Content="+" Command="{Binding Append}" CommandParameter="+" Style="{StaticResource Keypad}"/>
-                            <Button Content="0" Command="{Binding Append}" CommandParameter="0" Style="{StaticResource Keypad}"/>
-                            <Button Content="⌫" Command="{Binding Backspace}" Style="{StaticResource Keypad}"
-                                    AutomationProperties.Name="Удалить последний символ"/>
-                        </UniformGrid>
-                        <Button Content="Очистить номер" HorizontalAlignment="Right" Command="{Binding Clear}"/>
-                        <UniformGrid Columns="2" Margin="-3,10,-3,0">
-                            <Button Content="Позвонить" Command="{Binding Call}" Style="{StaticResource Primary}" Margin="3,0"/>
-                            <Button Content="Завершить звонок" Command="{Binding HangUp}" Style="{StaticResource EndCall}" Margin="3,0"/>
-                        </UniformGrid>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="Контакты">
-                <DockPanel Margin="12">
-                    <Button DockPanel.Dock="Top" Content="Импорт CSV или JSON" HorizontalAlignment="Left"
-                            Command="{Binding Import}" Style="{StaticResource Primary}" Margin="0,0,0,9"/>
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,9">
-                        <Label Content="Группа" Target="{Binding ElementName=GroupFilter}" Padding="0,4,8,4"/>
-                        <ComboBox x:Name="GroupFilter" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}"
-                                  DisplayMemberPath="Label" MinHeight="30" VerticalContentAlignment="Center"/>
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition x:Name="ContentRow" Height="*"/>
+                <RowDefinition x:Name="BottomRow" Height="0"/>
+            </Grid.RowDefinitions>
+
+            <TabControl x:Name="Tabs" Grid.Row="0" Margin="0,0,0,7" SelectionChanged="OnNavigationChanged">
+                <TabControl.Template>
+                    <ControlTemplate TargetType="TabControl">
+                        <TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
+                    </ControlTemplate>
+                </TabControl.Template>
+                <TabItem x:Name="PhoneTab" Header="Телефон" Style="{StaticResource NavigationTab}"/>
+                <TabItem x:Name="ContactsTab" Header="Контакты" Style="{StaticResource NavigationTab}"/>
+                <TabItem x:Name="HistoryTab" Header="История" Style="{StaticResource NavigationTab}"/>
+            </TabControl>
+
+            <Border x:Name="DialPanel" Grid.Row="1" Style="{StaticResource Card}">
+                <DockPanel LastChildFill="True">
+                    <DockPanel DockPanel.Dock="Top">
+                        <Button x:Name="ClearNumber" DockPanel.Dock="Right" Content="Очистить"
+                                VerticalAlignment="Stretch" Margin="6,0,0,0" Command="{Binding Clear}"/>
+                        <Border Background="{DynamicResource DialTexture}" CornerRadius="7">
+                            <TextBox x:Name="NumberInput" Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Номер телефона" MaxLength="80" FontSize="24"
+                                     FontFamily="{DynamicResource DisplayFont}" Background="Transparent" Foreground="{DynamicResource Ink}"
+                                     Padding="9,3" VerticalContentAlignment="Center" MinHeight="39">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding Call}"/>
+                                    <KeyBinding Key="Escape" Command="{Binding Clear}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+                        </Border>
                     </DockPanel>
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,9,0,0">
-                        <Button Content="Сменить группу" Command="{Binding ChangeGroup}" Margin="0,0,8,0"
-                                CommandParameter="{Binding SelectedItem, ElementName=ContactList}"/>
-                        <Button Content="Набрать номер" Click="ShowPhoneTab" Command="{Binding UseContact}"
-                                CommandParameter="{Binding SelectedItem, ElementName=ContactList}"/>
-                    </StackPanel>
-                    <ListView x:Name="ContactList" ItemsSource="{Binding Contacts}"
-                              AutomationProperties.Name="Контакты">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Имя" DisplayMemberBinding="{Binding Name}" Width="112"/>
-                                <GridViewColumn Header="Номер" DisplayMemberBinding="{Binding Phone}" Width="133"/>
-                                <GridViewColumn Header="Группа" DisplayMemberBinding="{Binding GroupLabel}" Width="130"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
+                    <UniformGrid DockPanel.Dock="Bottom" Columns="2" Margin="-3,7,-3,0">
+                        <Button Content="Позвонить" Command="{Binding Call}" Style="{StaticResource Primary}" Margin="3,0"/>
+                        <Button Content="Завершить звонок" Command="{Binding HangUp}" Style="{StaticResource EndCall}" Margin="3,0"/>
+                    </UniformGrid>
+                    <ScrollViewer x:Name="KeypadScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <UniformGrid x:Name="Keypad" Columns="3" Margin="-3,7,-3,6">
+                        <Button Content="1" Command="{Binding Append}" CommandParameter="1" Style="{StaticResource Keypad}"/>
+                        <Button Content="2" Command="{Binding Append}" CommandParameter="2" Style="{StaticResource Keypad}"/>
+                        <Button Content="3" Command="{Binding Append}" CommandParameter="3" Style="{StaticResource Keypad}"/>
+                        <Button Content="4" Command="{Binding Append}" CommandParameter="4" Style="{StaticResource Keypad}"/>
+                        <Button Content="5" Command="{Binding Append}" CommandParameter="5" Style="{StaticResource Keypad}"/>
+                        <Button Content="6" Command="{Binding Append}" CommandParameter="6" Style="{StaticResource Keypad}"/>
+                        <Button Content="7" Command="{Binding Append}" CommandParameter="7" Style="{StaticResource Keypad}"/>
+                        <Button Content="8" Command="{Binding Append}" CommandParameter="8" Style="{StaticResource Keypad}"/>
+                        <Button Content="9" Command="{Binding Append}" CommandParameter="9" Style="{StaticResource Keypad}"/>
+                        <Button Content="+" Command="{Binding Append}" CommandParameter="+" Style="{StaticResource Keypad}"/>
+                        <Button Content="0" Command="{Binding Append}" CommandParameter="0" Style="{StaticResource Keypad}"/>
+                        <Button Content="⌫" Command="{Binding Backspace}" Style="{StaticResource Keypad}"
+                                AutomationProperties.Name="Удалить последний символ"/>
+                    </UniformGrid>
+                    </ScrollViewer>
                 </DockPanel>
-            </TabItem>
-            <TabItem Header="История">
-                <DockPanel Margin="12">
-                    <Button DockPanel.Dock="Bottom" Content="Набрать выбранный номер" HorizontalAlignment="Right"
-                            Click="ShowPhoneTab" Command="{Binding UseHistory}" CommandParameter="{Binding SelectedItem, ElementName=HistoryList}"
-                            Margin="0,9,0,0"/>
+            </Border>
+
+            <Border x:Name="ContactsPanel" Grid.Row="1" Style="{StaticResource Card}" Visibility="Collapsed">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,7">
+                        <Button DockPanel.Dock="Right" Content="Импорт CSV / JSON" Margin="6,0,0,0"
+                                Command="{Binding Import}"/>
+                        <ComboBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
+                                  DisplayMemberPath="Label" VerticalContentAlignment="Center" AutomationProperties.Name="Группа контактов"/>
+                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,7,0,0">
+                        <Button Content="Сменить группу" Command="{Binding ChangeGroup}" Margin="0,0,6,0"
+                                CommandParameter="{Binding SelectedItem, ElementName=ContactList}"/>
+                        <Button Content="Набрать номер" Command="{Binding CallContact}" Style="{StaticResource Primary}"
+                                Click="ShowDialer" CommandParameter="{Binding SelectedItem, ElementName=ContactList}"/>
+                    </StackPanel>
+                    <ListBox x:Name="ContactList" ItemsSource="{Binding Contacts}" AutomationProperties.Name="Контакты"
+                             Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <EventSetter Event="MouseDoubleClick" Handler="CallContactOnDoubleClick"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="6,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto" MaxWidth="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}" ToolTip="{Binding DisplayName}" TextTrimming="CharacterEllipsis"
+                                                   FontWeight="SemiBold" Foreground="{DynamicResource Ink}"/>
+                                        <TextBlock Text="{Binding Phone}" Foreground="{DynamicResource Muted}"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Margin="6,0,0,0" Padding="7,3" CornerRadius="6"
+                                            Background="{DynamicResource Active}" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding GroupLabel}" ToolTip="{Binding GroupLabel}"
+                                                   TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Ink}" FontSize="12"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Border x:Name="HistoryPanel" Grid.Row="1" Style="{StaticResource Card}" Visibility="Collapsed">
+                <DockPanel>
+                    <Button DockPanel.Dock="Bottom" Content="Подставить номер" HorizontalAlignment="Right" Margin="0,7,0,0"
+                            Click="ShowDialer" Command="{Binding UseHistory}" CommandParameter="{Binding SelectedItem, ElementName=HistoryList}"/>
                     <ListBox x:Name="HistoryList" ItemsSource="{Binding History}" AutomationProperties.Name="История вызовов"
+                             Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="5" ToolTip="{Binding DeviceSerial}">
-                                    <TextBlock Text="{Binding Phone}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding ContactName}" TextWrapping="Wrap">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ContactName}" Value="">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding StatusLabel}" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding LocalTime, StringFormat=g}" Foreground="{StaticResource Muted}"/>
+                                <StackPanel Margin="6,4" ToolTip="{Binding DeviceSerial}">
+                                    <TextBlock Text="{Binding Phone}" FontWeight="SemiBold" Foreground="{DynamicResource Ink}"/>
+                                    <TextBlock Text="{Binding ContactName}" TextWrapping="Wrap" Foreground="{DynamicResource Ink}"/>
+                                    <TextBlock Text="{Binding StatusLabel}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}"/>
+                                    <TextBlock Text="{Binding LocalTime, StringFormat=g}" Foreground="{DynamicResource Muted}"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </DockPanel>
-            </TabItem>
-        </TabControl>
-        <TextBlock Grid.Row="2" Text="{Binding Feedback}" Margin="0,10,0,0" MinHeight="22"
-                   TextWrapping="Wrap" Foreground="{StaticResource Muted}" AutomationProperties.LiveSetting="Polite"/>
+            </Border>
+        </Grid>
+        <TextBlock x:Name="Feedback" Grid.Row="2" Text="{Binding Feedback}" Margin="1,7,0,0" MinHeight="16"
+                   TextWrapping="Wrap" Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
     </Grid>
 </Window>

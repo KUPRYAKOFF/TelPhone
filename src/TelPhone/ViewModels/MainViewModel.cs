@@ -24,6 +24,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private bool busy;
     private bool discovering;
     private bool adbInitialized;
+    private string? configuredAdbPath;
+    private WindowTheme theme;
+    private bool isTopmost;
+    private bool isCompact;
     private AdbService? adb;
     private IReadOnlyList<AndroidDevice> devices = [];
     private AndroidDevice? selectedDevice;
@@ -41,7 +45,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         database = new DialerDatabase(Path.Combine(dataDirectory, "telphone.db"));
         settingsPath = Path.Combine(dataDirectory, "settings.json");
         cancellation = lifetime.Token;
-        call = new(async _ => await RunAsync(CallAsync), _ => !busy && ready && SelectedDevice?.IsReady == true && PhoneNumber.Normalize(Number) != null);
+        call = new(async _ => await RunAsync(() => CallAsync(Number)), _ => CanCall(Number));
         hangUp = new(async _ => await RunAsync(HangUpAsync), _ => !busy && SelectedDevice?.IsReady == true);
         Import = new RelayCommand(async _ => await RunAsync(ImportAsync), _ => !busy && ready);
         ChangeGroup = new RelayCommand(async value =>
@@ -53,7 +57,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         Append = new RelayCommand(value => Number += value as string);
         Clear = new RelayCommand(_ => Number = "");
         Backspace = new RelayCommand(_ => Number = Number.Length == 0 ? "" : Number[..^1]);
-        UseContact = new RelayCommand(value => { if (value is Contact contact) Number = contact.Phone; }, value => value is Contact);
+        CallContact = new RelayCommand(async value =>
+        {
+            if (value is Contact contact)
+                await RunAsync(() => CallAsync(contact.Phone));
+        }, value => value is Contact contact && CanCall(contact.Phone));
         UseHistory = new RelayCommand(value => { if (value is HistoryEntry entry) Number = entry.Phone; }, value => value is HistoryEntry);
     }
 
@@ -66,7 +74,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ICommand Append { get; }
     public ICommand Clear { get; }
     public ICommand Backspace { get; }
-    public ICommand UseContact { get; }
+    public ICommand CallContact { get; }
     public ICommand UseHistory { get; }
 
     public string Number { get => number; set => Set(ref number, value ?? ""); }
@@ -88,6 +96,24 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     }
     public IReadOnlyList<HistoryEntry> History { get => history; private set => Set(ref history, value); }
 
+    public WindowTheme Theme
+    {
+        get => theme;
+        set { if (Set(ref theme, value)) SaveSettings(); }
+    }
+
+    public bool IsTopmost
+    {
+        get => isTopmost;
+        set { if (Set(ref isTopmost, value)) SaveSettings(); }
+    }
+
+    public bool IsCompact
+    {
+        get => isCompact;
+        set { if (Set(ref isCompact, value)) SaveSettings(); }
+    }
+
     public async Task StartAsync()
     {
         await RunAsync(async () =>
@@ -98,11 +124,16 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         });
 
         var bundledPath = Path.Combine(AppContext.BaseDirectory, "adb", "adb.exe");
-        string? configuredPath = null;
         try
         {
             if (File.Exists(settingsPath))
-                configuredPath = JsonSerializer.Deserialize<AdbSettings>(await File.ReadAllTextAsync(settingsPath, cancellation))?.AdbPath;
+            {
+                var saved = JsonSerializer.Deserialize<AppSettings>(await File.ReadAllTextAsync(settingsPath, cancellation)) ?? new();
+                configuredAdbPath = saved.AdbPath;
+                Theme = Enum.IsDefined(saved.Theme) ? saved.Theme : WindowTheme.Light;
+                IsTopmost = saved.IsTopmost;
+                IsCompact = saved.IsCompact;
+            }
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -113,8 +144,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        if (File.Exists(configuredPath))
-            adb = new AdbService(new AdbProcess(configuredPath));
+        if (File.Exists(configuredAdbPath))
+            adb = new AdbService(new AdbProcess(configuredAdbPath));
         else if (File.Exists(bundledPath))
             adb = new AdbService(new AdbProcess(bundledPath));
 
@@ -183,21 +214,42 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         if (picker.ShowDialog() != true)
             return;
 
-        adb = new AdbService(new AdbProcess(picker.FileName));
+        configuredAdbPath = picker.FileName;
+        adb = new AdbService(new AdbProcess(configuredAdbPath));
         Devices = [];
         SelectedDevice = null;
+        SaveSettings();
         await DiscoverAsync();
-        var temporaryFile = settingsPath + ".tmp";
-        await File.WriteAllTextAsync(temporaryFile, JsonSerializer.Serialize(new AdbSettings(picker.FileName)), cancellation);
-        File.Move(temporaryFile, settingsPath, overwrite: true);
     }
 
-    private async Task CallAsync()
+    private void SaveSettings()
     {
-        if (adb is null || SelectedDevice is not { IsReady: true } device ||
-            PhoneNumber.Normalize(Number) is not { } normalized)
+        if (!adbInitialized)
             return;
 
+        try
+        {
+            var settings = new AppSettings(configuredAdbPath, Theme, IsTopmost, IsCompact);
+            var temporaryFile = settingsPath + ".tmp";
+            File.WriteAllText(temporaryFile, JsonSerializer.Serialize(settings));
+            File.Move(temporaryFile, settingsPath, overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Feedback = "Не удалось сохранить настройки. Проверьте доступ к папке данных.";
+        }
+    }
+
+    private bool CanCall(string number)
+        => !busy && ready && SelectedDevice?.IsReady == true && PhoneNumber.Normalize(number) is not null;
+
+    private async Task CallAsync(string number)
+    {
+        if (adb is null || SelectedDevice is not { IsReady: true } device ||
+            PhoneNumber.Normalize(number) is not { } normalized)
+            return;
+
+        Number = number;
         long id = await Task.Run(() => database.RecordAttempt(normalized, device.Serial), cancellation);
         CallResult result;
         try
@@ -314,13 +366,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private void Set<T>(ref T current, T value, [CallerMemberName] string? property = null)
+    private bool Set<T>(ref T current, T value, [CallerMemberName] string? property = null)
     {
         if (EqualityComparer<T>.Default.Equals(current, value))
-            return;
+            return false;
         current = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         CommandManager.InvalidateRequerySuggested();
+        return true;
     }
 
     public void Dispose()
@@ -331,5 +384,4 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 
     public sealed record GroupFilter(string? Group, string Label);
 
-    private sealed record AdbSettings(string AdbPath);
 }

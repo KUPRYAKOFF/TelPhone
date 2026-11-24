@@ -1,0 +1,19 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Canvas" Color="#EEF3F8"/>
+    <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Control" Color="#F6F9FC"/>
+    <SolidColorBrush x:Key="Ink" Color="#15253A"/>
+    <SolidColorBrush x:Key="Muted" Color="#4A6077"/>
+    <SolidColorBrush x:Key="Line" Color="#CED9E5"/>
+    <SolidColorBrush x:Key="Accent" Color="#136C5B"/>
+    <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#0C584A"/>
+    <SolidColorBrush x:Key="Danger" Color="#FDEBEA"/>
+    <SolidColorBrush x:Key="OnDanger" Color="#9D342F"/>
+    <SolidColorBrush x:Key="DangerLine" Color="#F2D4D1"/>
+    <SolidColorBrush x:Key="Active" Color="#E2F3ED"/>
+    <SolidColorBrush x:Key="Hover" Color="#C0DFD4"/>
+    <FontFamily x:Key="DisplayFont">Segoe UI</FontFamily>
+    <SolidColorBrush x:Key="DialTexture" Color="Transparent"/>
+</ResourceDictionary>

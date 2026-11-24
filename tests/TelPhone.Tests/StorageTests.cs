@@ -8,6 +8,16 @@ public sealed class StorageTests : IDisposable
     private readonly DirectoryInfo temp = Directory.CreateTempSubdirectory("telphone-tests-");
 
     [Fact]
+    public void AppearanceSettingsPreserveTheExistingAdbPath()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("""{"AdbPath":"adb.exe"}""")!;
+        Assert.Equal(new AppSettings("adb.exe"), legacy);
+        var changed = legacy with { Theme = WindowTheme.Auspex, IsTopmost = true, IsCompact = true };
+        Assert.Equal(changed, System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+            System.Text.Json.JsonSerializer.Serialize(changed)));
+    }
+
+    [Fact]
     public void ImportsCsvWithQuotedHeadersAndValuesAndSkipsInvalidRows()
     {
         var path = Write("contacts.csv", """

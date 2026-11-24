@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Canvas" Color="#111610"/>
+    <SolidColorBrush x:Key="Surface" Color="#1C2419"/>
+    <SolidColorBrush x:Key="Control" Color="#242D20"/>
+    <SolidColorBrush x:Key="Ink" Color="#DDEBBC"/>
+    <SolidColorBrush x:Key="Muted" Color="#ACBD87"/>
+    <SolidColorBrush x:Key="Line" Color="#49583B"/>
+    <SolidColorBrush x:Key="Accent" Color="#C5E782"/>
+    <SolidColorBrush x:Key="OnAccent" Color="#202A16"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#DBF6AB"/>
+    <SolidColorBrush x:Key="Danger" Color="#422823"/>
+    <SolidColorBrush x:Key="OnDanger" Color="#FFD4A2"/>
+    <SolidColorBrush x:Key="DangerLine" Color="#6B4834"/>
+    <SolidColorBrush x:Key="Active" Color="#35492B"/>
+    <SolidColorBrush x:Key="Hover" Color="#5D7242"/>
+    <FontFamily x:Key="DisplayFont">Consolas</FontFamily>
+    <DrawingBrush x:Key="DialTexture" TileMode="Tile" Viewport="0,0,6,6" ViewportUnits="Absolute">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing Brush="#1787AC53" Geometry="M0,5 H6 V6 H0 Z"/>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+</ResourceDictionary>

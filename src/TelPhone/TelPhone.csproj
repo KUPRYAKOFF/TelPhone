@@ -7,8 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/TelPhone.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets/TelPhone.ico;Assets/TelPhone.png" />
     <ProjectReference Include="../TelPhone.Core/TelPhone.Core.csproj" />
   </ItemGroup>
 </Project>
