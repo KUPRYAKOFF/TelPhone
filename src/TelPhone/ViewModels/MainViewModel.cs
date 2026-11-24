@@ -2,11 +2,13 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Windows;
 using System.Windows.Input;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using TelPhone.Core;
+using TelPhone.Views;
 
 namespace TelPhone.ViewModels;
 
@@ -28,7 +30,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string number = "";
     private string connection = "Проверяем подключение…";
     private string feedback = "";
+    private IReadOnlyList<Contact> allContacts = [];
     private IReadOnlyList<Contact> contacts = [];
+    private IReadOnlyList<GroupFilter> groups = [];
+    private GroupFilter? selectedGroup;
     private IReadOnlyList<HistoryEntry> history = [];
 
     public MainViewModel(string dataDirectory)
@@ -39,6 +44,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         call = new(async _ => await RunAsync(CallAsync), _ => !busy && ready && SelectedDevice?.IsReady == true && PhoneNumber.Normalize(Number) != null);
         hangUp = new(async _ => await RunAsync(HangUpAsync), _ => !busy && SelectedDevice?.IsReady == true);
         Import = new RelayCommand(async _ => await RunAsync(ImportAsync), _ => !busy && ready);
+        ChangeGroup = new RelayCommand(async value =>
+        {
+            if (value is Contact contact)
+                await RunAsync(() => ChangeGroupAsync(contact));
+        }, value => !busy && ready && value is Contact);
         ChooseAdb = new RelayCommand(async _ => await RunAsync(ChooseAdbAsync), _ => adbInitialized && !busy && !discovering);
         Append = new RelayCommand(value => Number += value as string);
         Clear = new RelayCommand(_ => Number = "");
@@ -51,6 +61,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ICommand Call => call;
     public ICommand HangUp => hangUp;
     public ICommand Import { get; }
+    public ICommand ChangeGroup { get; }
     public ICommand ChooseAdb { get; }
     public ICommand Append { get; }
     public ICommand Clear { get; }
@@ -64,6 +75,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<AndroidDevice> Devices { get => devices; private set => Set(ref devices, value); }
     public AndroidDevice? SelectedDevice { get => selectedDevice; set => Set(ref selectedDevice, value); }
     public IReadOnlyList<Contact> Contacts { get => contacts; private set => Set(ref contacts, value); }
+    public IReadOnlyList<GroupFilter> Groups { get => groups; private set => Set(ref groups, value); }
+    public GroupFilter? SelectedGroup
+    {
+        get => selectedGroup;
+        set
+        {
+            Set(ref selectedGroup, value);
+            var group = value?.Group;
+            Contacts = group is null ? allContacts : allContacts.Where(contact => contact.Group == group).ToArray();
+        }
+    }
     public IReadOnlyList<HistoryEntry> History { get => history; private set => Set(ref history, value); }
 
     public async Task StartAsync()
@@ -214,17 +236,51 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private async Task ImportAsync()
     {
         var picker = new OpenFileDialog { Title = "Импорт контактов", Filter = "Контакты CSV и JSON|*.csv;*.json" };
-        if (picker.ShowDialog() != true)
+        if (picker.ShowDialog(Application.Current.MainWindow) != true)
             return;
 
-        var result = await Task.Run(() => database.Import(ContactImport.Read(picker.FileName)), cancellation);
-        Contacts = await Task.Run(database.GetContacts, cancellation);
-        Feedback = $"Добавлено {result.Added} · Дубликаты {result.Duplicates} · Некорректные строки {result.Invalid}";
+        var dialog = OpenGroupDialog("", importing: true);
+        if (dialog.ShowDialog() != true)
+            return;
+
+        var group = dialog.Group;
+        var updateExisting = dialog.UpdateExistingGroup;
+        var result = await Task.Run(() => database.Import(ContactImport.Read(picker.FileName), group, updateExisting), cancellation);
+        await RefreshContactsAsync(group.Length > 0 ? group : SelectedGroup?.Group);
+        Feedback = $"Добавлено {result.Added} · Группа изменена у {result.GroupChanged} · Пропущено дубликатов {result.Duplicates} · Некорректных строк {result.Invalid}";
+    }
+
+    private ContactGroupWindow OpenGroupDialog(string initialGroup, bool importing)
+    {
+        var existing = Groups.Select(filter => filter.Group).OfType<string>().Where(group => group.Length > 0);
+        return new ContactGroupWindow(existing, initialGroup, importing) { Owner = Application.Current.MainWindow };
+    }
+
+    private async Task ChangeGroupAsync(Contact contact)
+    {
+        var dialog = OpenGroupDialog(contact.Group, importing: false);
+        if (dialog.ShowDialog() != true)
+            return;
+
+        var group = dialog.Group;
+        await Task.Run(() => database.SetContactGroup(contact.Phone, group), cancellation);
+        await RefreshContactsAsync(SelectedGroup?.Group);
+        Feedback = group.Length == 0 ? "Контакт теперь без группы." : $"Контакт в группе «{group}».";
+    }
+
+    private async Task RefreshContactsAsync(string? preferredGroup)
+    {
+        allContacts = await Task.Run(database.GetContacts, cancellation);
+        var names = allContacts.Select(contact => contact.Group).Where(group => group.Length > 0)
+            .Distinct(StringComparer.Ordinal).OrderBy(group => group, StringComparer.CurrentCultureIgnoreCase);
+        Groups = [new(null, "Все контакты"), new("", "Без группы"), .. names.Select(group => new GroupFilter(group, group))];
+        SelectedGroup = Groups.FirstOrDefault(filter => string.Equals(filter.Group, preferredGroup, StringComparison.OrdinalIgnoreCase))
+            ?? Groups[0];
     }
 
     private async Task RefreshDataAsync()
     {
-        Contacts = await Task.Run(database.GetContacts, cancellation);
+        await RefreshContactsAsync(null);
         History = await Task.Run(database.GetHistory, cancellation);
     }
 
@@ -247,7 +303,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         {
             Feedback = "Не удалось сохранить или прочитать данные. Проверьте доступ к папке данных.";
         }
-        catch (Exception exception) when (exception is TimeoutException or IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is TimeoutException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
             Feedback = exception is UnauthorizedAccessException ? "Нет доступа к файлу или папке." : exception.Message;
         }
@@ -272,6 +328,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         lifetime.Cancel();
         lifetime.Dispose();
     }
+
+    public sealed record GroupFilter(string? Group, string Label);
 
     private sealed record AdbSettings(string AdbPath);
 }

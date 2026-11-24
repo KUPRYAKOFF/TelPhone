@@ -16,7 +16,7 @@ public sealed record HistoryEntry(long Id, string Phone, string ContactName, str
         _ => "Неизвестно"
     };
 }
-public sealed record ImportSummary(int Added, int Duplicates, int Invalid);
+public sealed record ImportSummary(int Added, int Duplicates, int Invalid, int GroupChanged = 0);
 
 public sealed class DialerDatabase(string path)
 {
@@ -43,7 +43,7 @@ public sealed class DialerDatabase(string path)
         command.Transaction = transaction;
         command.CommandText = "PRAGMA user_version";
         long version = (long)command.ExecuteScalar()!;
-        if (version > 1)
+        if (version > 2)
             throw new InvalidDataException("База данных создана более новой версией TelPhone.");
         if (version == 0)
         {
@@ -61,45 +61,104 @@ public sealed class DialerDatabase(string path)
                     created_at TEXT NOT NULL,
                     command_status TEXT NOT NULL
                 );
-                PRAGMA user_version = 1;
+                """;
+            command.ExecuteNonQuery();
+        }
+        if (version < 2)
+        {
+            command.CommandText = """
+                ALTER TABLE contacts ADD COLUMN contact_group TEXT NOT NULL DEFAULT '';
+                PRAGMA user_version = 2;
                 """;
             command.ExecuteNonQuery();
         }
         transaction.Commit();
     }
 
-    public ImportSummary Import(ImportBatch batch)
+    public ImportSummary Import(ImportBatch batch, string group = "", bool updateExistingGroup = false)
     {
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
+        group = ResolveGroupName(connection, transaction, group);
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            INSERT INTO contacts (name, normalized_phone) VALUES ($name, $phone)
+            INSERT INTO contacts (name, normalized_phone, contact_group) VALUES ($name, $phone, $group)
                 ON CONFLICT (normalized_phone) DO NOTHING;
             """;
         var name = command.Parameters.Add("$name", SqliteType.Text);
         var phone = command.Parameters.Add("$phone", SqliteType.Text);
+        command.Parameters.AddWithValue("$group", group);
+        using var update = updateExistingGroup && group.Length > 0 ? GroupUpdate(connection, transaction, group) : null;
         int added = 0;
+        int changed = 0;
         foreach (var contact in batch.Contacts)
         {
             name.Value = contact.Name;
             phone.Value = contact.Phone;
-            added += command.ExecuteNonQuery();
+            int inserted = command.ExecuteNonQuery();
+            added += inserted;
+            if (inserted == 0 && update is not null)
+            {
+                update.Parameters["$phone"].Value = contact.Phone;
+                changed += update.ExecuteNonQuery();
+            }
         }
         transaction.Commit();
-        return new(added, batch.Contacts.Count - added, batch.Invalid);
+        return new(added, batch.Contacts.Count - added - changed, batch.Invalid, changed);
+    }
+
+    public void SetContactGroup(string phone, string group)
+    {
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        using var update = GroupUpdate(connection, transaction, ResolveGroupName(connection, transaction, group));
+        update.Parameters["$phone"].Value = phone;
+        update.ExecuteNonQuery();
+        transaction.Commit();
+    }
+
+    private static SqliteCommand GroupUpdate(SqliteConnection connection, SqliteTransaction transaction, string group)
+    {
+        var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            UPDATE contacts SET contact_group = $group
+            WHERE normalized_phone = $phone AND contact_group <> $group;
+            """;
+        command.Parameters.AddWithValue("$group", group);
+        command.Parameters.Add("$phone", SqliteType.Text);
+        return command;
+    }
+
+    private static string ResolveGroupName(SqliteConnection connection, SqliteTransaction transaction, string group)
+    {
+        group = group.Trim();
+        if (group.Length == 0)
+            return group;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT DISTINCT contact_group FROM contacts";
+        using var rows = command.ExecuteReader();
+        while (rows.Read())
+        {
+            var existing = rows.GetString(0);
+            if (string.Equals(existing, group, StringComparison.OrdinalIgnoreCase))
+                return existing;
+        }
+        return group;
     }
 
     public IReadOnlyList<Contact> GetContacts()
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name, normalized_phone FROM contacts";
+        command.CommandText = "SELECT name, normalized_phone, contact_group FROM contacts";
         using var rows = command.ExecuteReader();
         var contacts = new List<Contact>();
         while (rows.Read())
-            contacts.Add(new Contact(rows.GetString(0), rows.GetString(1)));
+            contacts.Add(new Contact(rows.GetString(0), rows.GetString(1), rows.GetString(2)));
         return contacts.OrderBy(contact => contact.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(contact => contact.Phone, StringComparer.Ordinal).ToArray();
     }

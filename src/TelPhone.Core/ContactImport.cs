@@ -4,8 +4,9 @@ using Microsoft.VisualBasic.FileIO;
 
 namespace TelPhone.Core;
 
-public sealed record Contact(string Name, string Phone)
+public sealed record Contact(string Name, string Phone, string Group = "")
 {
+    public string GroupLabel => Group.Length == 0 ? "Без группы" : Group;
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Phone : Name;
 }
 
