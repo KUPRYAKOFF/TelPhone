@@ -10,22 +10,23 @@ public sealed record Contact(string Name, string Phone, string Group = "")
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Phone : Name;
 }
 
-public sealed record ImportBatch(IReadOnlyList<Contact> Contacts, int Invalid);
+public sealed record ImportBatch(IReadOnlyList<Contact> Contacts, int Invalid, string? SuggestedGroup = null);
 
-public static class ContactImport
+public static partial class ContactImport
 {
     private static readonly string[] PhoneKeys = ["phone", "number", "телефон", "номер", "номер телефона"];
-    private static readonly string[] NameKeys = ["name", "fullName", "имя", "фио"];
+    private static readonly string[] NameKeys = ["name", "fullName", "имя", "фио", "фамилия имя отчество", "фамилия, имя, отчество"];
 
     public static ImportBatch Read(string path)
     {
+        var extension = Path.GetExtension(path).ToLowerInvariant();
+        if (extension == ".xlsx")
+            return ReadWorkbook(path);
+        if (extension is not (".csv" or ".json"))
+            throw new FormatException("Выберите файл XLSX, CSV или JSON.");
+
         using var reader = new StreamReader(path, new UTF8Encoding(false, true));
-        return Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".csv" => ReadCsv(reader.ReadToEnd()),
-            ".json" => ReadJson(reader.ReadToEnd()),
-            _ => throw new FormatException("Выберите файл CSV или JSON.")
-        };
+        return extension == ".csv" ? ReadCsv(reader.ReadToEnd()) : ReadJson(reader.ReadToEnd());
     }
 
     private static ImportBatch ReadCsv(string text)

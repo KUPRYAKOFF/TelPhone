@@ -117,7 +117,7 @@
             <Border x:Name="ContactsPanel" Grid.Row="1" Style="{StaticResource Card}" Visibility="Collapsed">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,7">
-                        <Button DockPanel.Dock="Right" Content="Импорт CSV / JSON" Margin="6,0,0,0"
+                        <Button DockPanel.Dock="Right" Content="Импорт контактов" Margin="6,0,0,0"
                                 Command="{Binding Import}"/>
                         <ComboBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
                                   DisplayMemberPath="Label" VerticalContentAlignment="Center" AutomationProperties.Name="Группа контактов"/>

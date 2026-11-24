@@ -293,17 +293,24 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task ImportAsync()
     {
-        var picker = new OpenFileDialog { Title = "Импорт контактов", Filter = "Контакты CSV и JSON|*.csv;*.json" };
+        var picker = new OpenFileDialog { Title = "Импорт контактов", Filter = "Таблицы Excel и файлы контактов|*.xlsx;*.csv;*.json" };
         if (picker.ShowDialog(Application.Current.MainWindow) != true)
             return;
 
-        var dialog = OpenGroupDialog("", importing: true);
+        var batch = await Task.Run(() => ContactImport.Read(picker.FileName), cancellation);
+        if (batch.Contacts.Count == 0)
+        {
+            Feedback = batch.Invalid == 0 ? "В файле нет контактов." : $"Нет контактов для импорта. Некорректных строк: {batch.Invalid}.";
+            return;
+        }
+
+        var dialog = OpenGroupDialog(batch.SuggestedGroup ?? "", importing: true);
         if (dialog.ShowDialog() != true)
             return;
 
         var group = dialog.Group;
         var updateExisting = dialog.UpdateExistingGroup;
-        var result = await Task.Run(() => database.Import(ContactImport.Read(picker.FileName), group, updateExisting), cancellation);
+        var result = await Task.Run(() => database.Import(batch, group, updateExisting), cancellation);
         await RefreshContactsAsync(group.Length > 0 ? group : SelectedGroup?.Group);
         Feedback = $"Добавлено {result.Added} · Группа изменена у {result.GroupChanged} · Пропущено дубликатов {result.Duplicates} · Некорректных строк {result.Invalid}";
     }
