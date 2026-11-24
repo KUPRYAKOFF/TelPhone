@@ -32,6 +32,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private IReadOnlyList<AndroidDevice> devices = [];
     private AndroidDevice? selectedDevice;
     private string number = "";
+    private string? contactName;
     private string connection = "Проверяем подключение…";
     private string feedback = "";
     private IReadOnlyList<Contact> allContacts = [];
@@ -77,7 +78,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ICommand CallContact { get; }
     public ICommand UseHistory { get; }
 
-    public string Number { get => number; set => Set(ref number, value ?? ""); }
+    public string Number
+    {
+        get => number;
+        set { if (Set(ref number, value ?? "")) RefreshContactName(); }
+    }
+    public string? ContactName { get => contactName; private set => Set(ref contactName, value); }
     public string Connection { get => connection; private set => Set(ref connection, value); }
     public string Feedback { get => feedback; private set => Set(ref feedback, value); }
     public IReadOnlyList<AndroidDevice> Devices { get => devices; private set => Set(ref devices, value); }
@@ -323,11 +329,19 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private async Task RefreshContactsAsync(string? preferredGroup)
     {
         allContacts = await Task.Run(database.GetContacts, cancellation);
+        RefreshContactName();
         var names = allContacts.Select(contact => contact.Group).Where(group => group.Length > 0)
             .Distinct(StringComparer.Ordinal).OrderBy(group => group, StringComparer.CurrentCultureIgnoreCase);
         Groups = [new(null, "Все контакты"), new("", "Без группы"), .. names.Select(group => new GroupFilter(group, group))];
         SelectedGroup = Groups.FirstOrDefault(filter => string.Equals(filter.Group, preferredGroup, StringComparison.OrdinalIgnoreCase))
             ?? Groups[0];
+    }
+
+    private void RefreshContactName()
+    {
+        var normalized = PhoneNumber.Normalize(Number);
+        var name = allContacts.FirstOrDefault(contact => contact.Phone == normalized)?.Name;
+        ContactName = string.IsNullOrWhiteSpace(name) ? null : name;
     }
 
     private async Task RefreshDataAsync()

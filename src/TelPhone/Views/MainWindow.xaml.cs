@@ -13,7 +13,7 @@ public partial class MainWindow : Window
 {
     private const double FullMinWidth = 390;
     private const double FullMinHeight = 505;
-    private static readonly Size CompactSize = new(350, 238);
+    private static readonly Size CompactSize = new(350, 264);
     private readonly MainViewModel viewModel;
     private IntPtr windowHandle;
     private bool compact;
@@ -64,7 +64,7 @@ public partial class MainWindow : Window
         var fluent = new Uri($"pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.{mode}.xaml");
         if (dictionaries[0].Source != fluent)
             dictionaries[0] = new ResourceDictionary { Source = fluent };
-        dictionaries[1] = new ResourceDictionary { Source = new Uri($"/TelPhone;component/Themes/{viewModel.Theme}.xaml", UriKind.Relative) };
+        dictionaries[1] = new ResourceDictionary { Source = new Uri($"/usbPhone;component/Themes/{viewModel.Theme}.xaml", UriKind.Relative) };
 
         int darkFrame = viewModel.Theme == WindowTheme.Light ? 0 : 1;
         if (SetFrameAttribute(windowHandle, 20, ref darkFrame, sizeof(int)) != 0)
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
         Grid.SetRow(HistoryPanel, stacked ? 2 : 1);
         ContentRow.Height = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
         BottomRow.Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        DialPanel.MaxHeight = stacked ? Math.Clamp(ActualHeight * .53, 165, 302) : double.PositiveInfinity;
+        DialPanel.MaxHeight = stacked ? Math.Clamp(ActualHeight * .53, 165, 320) : double.PositiveInfinity;
         UpdatePanels();
     }
 

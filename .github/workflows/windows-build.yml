@@ -28,15 +28,15 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/build.ps1
-          Get-Item artifacts/TelPhone-win-x64/TelPhone.exe -ErrorAction Stop
+          Get-Item artifacts/usbPhone-win-x64/usbPhone.exe -ErrorAction Stop
       - name: Check the Windows interface
         shell: powershell
         timeout-minutes: 3
-        run: ./scripts/test-window.ps1 -Executable artifacts/TelPhone-win-x64/TelPhone.exe
+        run: ./scripts/test-window.ps1 -Executable artifacts/usbPhone-win-x64/usbPhone.exe
       - uses: actions/upload-artifact@v4
         with:
-          name: TelPhone-win-x64
-          path: artifacts/TelPhone-win-x64/
+          name: usbPhone-win-x64
+          path: artifacts/usbPhone-win-x64/
           if-no-files-found: error
 
   release:
@@ -48,17 +48,17 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: TelPhone-win-x64
-          path: TelPhone-win-x64
+          name: usbPhone-win-x64
+          path: usbPhone-win-x64
       - name: Publish portable files
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          test -s TelPhone-win-x64/TelPhone.exe
-          (cd TelPhone-win-x64 && zip -q -r ../TelPhone-win-x64.zip .)
-          unzip -tq TelPhone-win-x64.zip
+          test -s usbPhone-win-x64/usbPhone.exe
+          (cd usbPhone-win-x64 && zip -q -r ../usbPhone-win-x64.zip .)
+          unzip -tq usbPhone-win-x64.zip
           gh release create "$GITHUB_REF_NAME" --verify-tag \
-            --title "TelPhone ${GITHUB_REF_NAME#v}" \
-            --notes 'Готовая сборка для Windows x64. Скачайте TelPhone.exe или ZIP с инструкцией. Среда .NET включена. При первом запуске укажите adb.exe из Android SDK Platform-Tools.' \
-            TelPhone-win-x64/TelPhone.exe TelPhone-win-x64.zip
+            --title "usbPhone ${GITHUB_REF_NAME#v}" \
+            --notes 'Готовая сборка для Windows x64. Скачайте usbPhone.exe или ZIP с инструкцией. Среда .NET включена. При первом запуске укажите adb.exe из Android SDK Platform-Tools.' \
+            usbPhone-win-x64/usbPhone.exe usbPhone-win-x64.zip

@@ -44,7 +44,7 @@ public sealed class DialerDatabase(string path)
         command.CommandText = "PRAGMA user_version";
         long version = (long)command.ExecuteScalar()!;
         if (version > 2)
-            throw new InvalidDataException("База данных создана более новой версией TelPhone.");
+            throw new InvalidDataException("База данных создана более новой версией usbPhone.");
         if (version == 0)
         {
             command.CommandText = """

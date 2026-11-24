@@ -22,8 +22,8 @@ public partial class App : Application
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show("Не удалось открыть папку данных TelPhone. Проверьте доступ на запись.",
-                "TelPhone", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("Не удалось открыть папку данных usbPhone. Проверьте доступ на запись.",
+                "usbPhone", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
